@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# Imports
+
+
+from tensorflow.python.client import device_lib
+import time
+import os
+#from sklearn.metrics import mean_squared_error as mse
+import pandas as pd
+from sys import getsizeof as m_size
+import matplotlib.pyplot as plt
+#import seaborn as sns
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Activation
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.utils import multi_gpu_model
+
+
+
+def get_available_gpus():
+    local_device_protos = device_lib.list_local_devices()
+    return [x.name for x in local_device_protos if x.device_type == 'GPU']
+
+def total_zero(df):
+    return ((df == 0).astype(int).sum(axis=1)).sum()
+
+
+def chart_regression(pred, y, sort=True):
+    t = pd.DataFrame({'pred': pred, 'y': y.flatten()})
+    if sort:
+        t.sort_values(by=['y'], inplace=True)
+    plt.plot(t['y'].tolist(), label='expected')
+    plt.plot(t['pred'].tolist(), label='prediction')
+    plt.ylabel('output')
+    plt.legend()
+    plt.show()
+
+
+# In[ ]:
+
+
+
+
+
+
+# In[7]:
+
+
+st=time.time()
+data=pd.read_csv('Train.csv',index_col=0)
+end=time.time()
+print(end-st)
+
+
+# In[8]:
+
+
+
+
+labels=data['Classes']
+
+
+# In[10]:
+
+
+data.drop('Classes',axis=1,inplace=True)
+
+
+# In[11]:
+
+
+total_genes=data.columns
+
+
+# In[12]:
+
+
+
+# In[14]:
+
+
+x=data.to_numpy()
+print(x.shape)
+
+
+# In[32]:
+
+
+G=get_available_gpus()
+print(G)
+G=len(G)
+print(G)
+
+
+# In[ ]:
+
+
+print("Creating/Training neural network")
+model = Sequential()
+model.add(Dense(1000, input_dim=x.shape[1], activation='relu'))
+model.add(Dense(500, activation='relu'))
+model.add(Dense(1000, activation='relu'))
+model.add(Dense(x.shape[1])) # Multiple output neurons
+#model = multi_gpu_model(model, gpus=G)
+model.compile(loss='mean_squared_error', optimizer='adam')
+st=time.time()
+model.fit(x,x,verbose=1,epochs=10000,batch_size=50)
+
+model.save('Dense_model.h5')
+# In[16]:
+
+
+print("Score neural network")
+pred = model.predict(x)
+
+en=time.time()
+print('time taken',en-st)
+# In[18]:
+
+
+
+
+#print(mse(pred,x))
+
+
+# In[ ]:
+
